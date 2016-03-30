@@ -85,6 +85,6 @@ correct.dna <- function(cut.matrix = FALSE) {
                         nucleotids = nucleotids)))
 }
 
-# Call the function
-res <- correct.dna()
+# # Call the function
+# res <- correct.dna()
 # END OF SCRIPT

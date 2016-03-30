@@ -162,15 +162,18 @@ mhmm[[4]] <- res
 names(attr(mhmm$transProbs, "dimnames"))[1] <- 'from'
 names(attr(mhmm$transProbs, "dimnames"))[2] <- 'to'
 
-result2 <- viterbi(mhmm, obs2)
+result2 <- HMM::viterbi(mhmm, obs2)
 
 total <- c()
 for (i in 1:nrow(dna)) {
   j <- 60 * (i - 1) + 1
   obs2 <- nucleotids[j:(j + 59)]
-  trial <- viterbi(mhmm, obs2)
+  trial <- HMM::viterbi(mhmm, obs2)
   total <- c(total, names(table(trial))[1])
 }
+
+table(dna[, 1], total)
+sum(diag(table(dna[, 1], total))) / sum(table(dna[, 1], total))
 
 
 

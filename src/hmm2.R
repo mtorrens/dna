@@ -85,7 +85,16 @@ camino <- paste(amino2[, 2], amino2[, 1], sep = '')
 res <- matrix(nrow = 3, ncol = 64)
 uamino <- unique(amino)
 for (i in 1:64) {
-  res[, i] <- table(camino[grep(uamino[i], camino)]) / sum(table(camino[grep(uamino[i], camino)]))
+
+  aux <- c()
+  aux[1] <- length(which(camino == paste('E', uamino[i], sep = ''))) /
+            length(which(substr(camino, 1, 1) == 'E'))
+  aux[2] <- length(which(camino == paste('I', uamino[i], sep = ''))) /
+            length(which(substr(camino, 1, 1) == 'I'))
+  aux[3] <- length(which(camino == paste('N', uamino[i], sep = ''))) /
+            length(which(substr(camino, 1, 1) == 'N'))
+
+  res[, i] <- aux
 }
 colnames(res) <- uamino
 rownames(res) <- c('E', 'I', 'N')
@@ -99,14 +108,16 @@ names(attr(mhmm$emissionProbs, "dimnames"))[2] <- 'symbols'
 
 result2 <- HMM::viterbi(mhmm, amino[1:20])
 
+#x <- 2
 total <- c()
 for (i in 1:nrow(dna)) {
   j <- 20 * (i - 1) + 1
   obs2 <- amino[j:(j + 19)]
   trial <- HMM::viterbi(mhmm, obs2)
-  total <- c(total, names(table(trial))[1])
+  #trial <- HMM::viterbi(mhmm, rev(obs2))
+  #total <- c(total, trial[x])
+  total <- c(total, names(sort(table(trial), decreasing = TRUE))[1])
 }
-
 table(dna[, 1], total)
 sum(diag(table(dna[, 1], total))) / sum(table(dna[, 1], total))
 
