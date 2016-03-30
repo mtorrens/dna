@@ -1,0 +1,115 @@
+
+source('~/Desktop/bgse/projects/github/smo/src/correct_dna.R')
+
+dna <- res[['dna']]
+sequence <- res[['sequence']]
+nucleotids <- res[['nucleotids']]
+
+amino <- c()
+for (i in seq(1, length(nucleotids), 3)) {
+  new.amino <- paste(nucleotids[i:(i + 2)], collapse = '')
+  amino <- c(amino, new.amino)
+}
+
+# HMM matrix
+tt <- table(substr(dna[, 1], 1, 1))
+mhmm <- vector(mode = 'list', length = 5)
+names(mhmm) <- c('States', 'Symbols', 'startProbs', 'transProbs', 'emissionProbs')
+mhmm[[1]] <- c('E', 'I', 'N')
+mhmm[[2]] <- unique(amino)
+mhmm[[3]] <- as.numeric(tt / sum(tt))
+if (FALSE) { mhmm[[3]] <- c(1/3, 1/3, 1/3) }
+names(mhmm[[3]]) <- c('E', 'I', 'N')
+
+or <- substr(dna[, 1], 1, 1)
+set.seed(666)
+first <- sample(1:nrow(dna), 1)
+labs <- or[first]
+
+pI <- tt[names(tt) %in% c('E', 'N')] / sum(tt[names(tt) %in% c('E', 'N')])
+pE <- tt[names(tt) %in% c('I', 'N')] / sum(tt[names(tt) %in% c('I', 'N')])
+#pN <- tt[names(tt) %in% c('E', 'N')] / sum(tt[names(tt) %in% c('E', 'N')])
+#pN <- tt / sum(tt)
+pN <- tt[names(tt) %in% c('E', 'I')] / sum(tt[names(tt) %in% c('E', 'I')])
+
+for (i in 2:nrow(dna)) {
+  if (labs[i - 1] == 'I') {
+    draw <- rbinom(1, 1, pI[1])
+    end <- ifelse(draw == 1, 'E', 'N')
+  } else if (labs[i - 1] == 'E') {
+    draw <- rbinom(1, 1, pE[1])
+    end <- ifelse(draw == 1, 'I', 'N')
+  } else if (labs[i - 1] == 'N') {
+    draw <- rbinom(1, 1, pN[1])
+    end <- ifelse(draw == 1, 'E', 'I')
+  }
+  labs <- c(labs, end)
+}
+
+ext.labs <- c()
+for (lab in labs) {
+  ext.labs <- c(ext.labs, rep(lab, 20))
+}
+
+trI <- table(ext.labs[which(ext.labs == 'I') + 1]) / sum(table(ext.labs[which(ext.labs == 'I') + 1]))
+trE <- table(ext.labs[which(ext.labs == 'E') + 1]) / sum(table(ext.labs[which(ext.labs == 'E') + 1]))
+trN <- table(ext.labs[which(ext.labs == 'N') + 1]) / sum(table(ext.labs[which(ext.labs == 'N') + 1]))
+trN <- table(ext.labs[which(ext.labs == 'N') + 1]) / sum(table(ext.labs[which(ext.labs == 'N') + 1]))
+#trN <- table(ext.labs) / sum(table(ext.labs))
+#trN <- c(trN[1], 0, trN[2])
+#names(trN)[2] <- 'I'
+
+res <- matrix(nrow = 3, ncol = 3)
+colnames(res) <- c('E', 'I', 'N')
+rownames(res) <- c('E', 'I', 'N')
+res[1, ] <- trE
+res[2, ] <- trI
+res[3, ] <- trN
+if (FALSE) {
+  res[1, ] <- c(0.95, 0.025, 0.025)
+  res[2, ] <- c(0.025, 0.95, 0.025)
+  res[3, ] <- c(0.025, 0.025, 0.95)
+}
+mhmm[[4]] <- res
+names(attr(mhmm$transProbs, "dimnames"))[1] <- 'from'
+names(attr(mhmm$transProbs, "dimnames"))[2] <- 'to'
+
+classes <- c()
+for (i in 1:nrow(dna)) {
+  classes <- c(classes, rep(dna[i, 1], 20))
+}
+amino2 <- cbind(amino, classes)
+amino2[, 2] <- substr(amino2[, 2], 1, 1)
+camino <- paste(amino2[, 2], amino2[, 1], sep = '')
+
+res <- matrix(nrow = 3, ncol = 64)
+uamino <- unique(amino)
+for (i in 1:64) {
+  res[, i] <- table(camino[grep(uamino[i], camino)]) / sum(table(camino[grep(uamino[i], camino)]))
+}
+colnames(res) <- uamino
+rownames(res) <- c('E', 'I', 'N')
+mhmm[[5]] <- res
+
+names(attr(mhmm$emissionProbs, "dimnames"))[1] <- 'states'
+names(attr(mhmm$emissionProbs, "dimnames"))[2] <- 'symbols'
+
+
+
+
+result2 <- HMM::viterbi(mhmm, amino[1:20])
+
+total <- c()
+for (i in 1:nrow(dna)) {
+  j <- 20 * (i - 1) + 1
+  obs2 <- amino[j:(j + 19)]
+  trial <- HMM::viterbi(mhmm, obs2)
+  total <- c(total, names(table(trial))[1])
+}
+
+table(dna[, 1], total)
+sum(diag(table(dna[, 1], total))) / sum(table(dna[, 1], total))
+
+
+
+

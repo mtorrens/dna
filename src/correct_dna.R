@@ -1,12 +1,18 @@
 #source('~/Desktop/bgse/projects/smo/correct_dna.R')
 ################################################################################
-correct.dna <- function() {
+correct.dna <- function(cut.matrix = FALSE) {
 ################################################################################
   txt1 <- 'https://archive.ics.uci.edu/ml/machine-learning-databases/'
   txt2 <- 'molecular-biology/splice-junction-gene-sequences/splice.data'
   rfile <- paste(txt1, txt2, sep = '')
   #sfile <- paste(DATDIR, '')
   dna <- read.table(rfile, sep = ',')
+
+  if (cut.matrix == TRUE) {
+    set.seed(666)
+    ns <- which(dna[, 1] == 'N')
+    dna <- dna[-sample(ns, length(ns) - 768), ]
+  }
 
   for (col in 1:ncol(dna)) {
     if (is.factor(dna[, col])) {
