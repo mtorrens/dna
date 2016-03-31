@@ -1,5 +1,5 @@
 # Get the DNA data
-source('~/Desktop/bgse/projects/github/smo/src/correct_dna.R')
+source('correct_dna.R')
 res <- correct.dna(cut.matrix = FALSE)
 
 # Data obtained
@@ -123,7 +123,7 @@ get.hmm <- function(dna, subseq) {
 run.viterbi <- function(dna, subseq = 5) {
 ################################################################################
   ##############################################################################
-  # HMM matrix
+  # HMM matrix
   model <- get.hmm(dna, subseq)
   hmm <- model[[1]]
   amino <- model[[2]]
@@ -161,7 +161,7 @@ run.viterbi <- function(dna, subseq = 5) {
 }
 
 ################################################################################
-# FULL MODEL
+# FULL MODEL
 ################################################################################
 full <- run.viterbi(dna, 5)
 full <- run.viterbi(dna, 3)
@@ -180,7 +180,7 @@ nr <- full[[5]]
 }
 
 ################################################################################
-# CROSS-VALIDATION
+# CROSS-VALIDATION
 ################################################################################
 set.seed(666)
 dna2 <- dna
@@ -189,7 +189,7 @@ k <- 100
 subseq <- 3
 
 ################################################################################
-cross.validate <- function(dna, k, subseq, average = FALSE) {
+cross.validate <- function(dna, k, subseq, average = FALSE, usePackage = FALSE) {
 ################################################################################
   # Create the chunks
   chunks <- split(1:nrow(dna), factor(sort(rank(1:nrow(dna)) %% k)))
@@ -217,14 +217,31 @@ cross.validate <- function(dna, k, subseq, average = FALSE) {
       j <- (60 / subseq) * (i - 1) + 1
       obs2 <- amino[j:(j + 60 / subseq - 1)]
       #trial <- HMM::viterbi(hmm, obs2)
-      post1 <- try(rowMeans(HMM::posterior(hmm, obs2)), silent = TRUE)
-      post2 <- try(rowMeans(HMM::posterior(hmm, rev(obs2))), silent = TRUE)
+      if (usePackage)
+      {
+        post1 <- try(rowMeans(HMM::posterior(hmm, obs2)), silent = TRUE)
+        post2 <- try(rowMeans(HMM::posterior(hmm, rev(obs2))), silent = TRUE)
+      }
+      else
+      {
+        post1 <- my.viterbi(hmm, obs2)
+        post1 <- as.vector(post1[, ncol(post1)])
+        post2 <- my.viterbi(rev(hmm), obs2)
+        post2 <- as.vector(post2[, ncol(post2)])
+      }
 
-      # Some sequences may have not been observed
-      if (class(post1) != 'try-error') {
-        lab1 <- names(which.max(post1))
-        lab2 <- names(which.max(post2))
-
+      if (class(post1) != 'try-error' && !is.null(post1)) {
+        if (usePackage)
+        {
+          lab1 <- names(which.max(post1))
+          lab2 <- names(which.max(post2))
+        }
+        else
+        {
+          lab1 <- hmm$States[which.max(post1)]
+          lab2 <- hmm$States[which.max(post2)]
+        }
+        
         # If predictions coincide go for it, otherwise highest posterior
         if (lab1 == lab2) {
           result <- lab1
@@ -255,24 +272,25 @@ cross.validate <- function(dna, k, subseq, average = FALSE) {
 
 ################################################################################
 # Cross-validation scores
-library(parallel)
-library(doMC)
-registerDoMC(cores = 4)
-ks <- c(5, 10, 100, nrow(dna))
-ss <- c(3, 5, 6)
-for (k in ks) {
-  aux <- foreach(s = ss) %dopar% {
-    score <- cross.validate(dna, k = k, subseq = s, average = TRUE)
-    cat('k =', k, ', subseq =', s, ', score =',
-        100 * round(score, 3), '%\n', sep = '')
-  }
-}
+# library(parallel)
+# library(doMC)
+# registerDoMC(cores = 4)
+# ks <- c(5, 10, 100, nrow(dna))
+# ss <- c(3, 5, 6)
+# for (k in ks) {
+#   aux <- foreach(s = ss) %dopar% {
+#     score <- cross.validate(dna, k = k, subseq = s, average = TRUE)
+#     cat('k =', k, ', subseq =', s, ', score =',
+#         100 * round(score, 3), '%\n', sep = '')
+#   }
+# }
 
 # score <- cross.validate(dna, k = 10, subseq = 3); mean(score)
 # score <- cross.validate(dna, k = 10, subseq = 5); mean(score)
 # score <- cross.validate(dna, k = 10, subseq = 6); mean(score)
 # score <- cross.validate(dna, k =  5, subseq = 3); mean(score)
-# score <- cross.validate(dna, k =  5, subseq = 5); mean(score)
+score <- cross.validate(dna, k =  5, subseq = 5, TRUE); mean(score)
+score <- cross.validate(dna, k =  5, subseq = 5, FALSE); mean(score)
 # score <- cross.validate(dna, k =  5, subseq = 6); mean(score)
 # score <- cross.validate(dna, k = 100, subseq = 3); mean(score)
 # score <- cross.validate(dna, k = 100, subseq = 5); mean(score)
@@ -281,8 +299,43 @@ for (k in ks) {
 # score <- cross.validate(dna, k = nrow(dna), subseq = 5); mean(score)
 # score <- cross.validate(dna, k = nrow(dna), subseq = 6); mean(score)
 
-
-
-
-
-
+################################################################################
+# THE VITERBI IMPLEMENTATION
+################################################################################
+my.viterbi <- function(model, obs)
+{
+  O <- model$Symbols
+  S <- model$States
+  Y <- obs
+  A <- model$transProbs
+  B <- model$emissionProbs
+  pi <- model$startProbs
+  
+  T1 <- matrix(0, length(S), length(Y))
+  T2 <- matrix(0, length(S), length(Y))
+  
+  for (j in 1:length(S))
+  {
+    y <- which(O == Y[1])
+    if (length(y) == 0) { return(NULL) }
+   
+    T1[j, 1] <- pi[j] * B[j, y]
+    T2[j, 1] <- 0
+  }
+  
+  for (i in 2:length(obs))
+  {
+    y <- which(O == Y[i])
+    if (length(y) == 0) { return(NULL) }
+   
+    for (j in 1:length(S))
+    {
+      products <- T1[, i-1] * A[, j] * B[j, y]
+      T1[j, i] <- max(products)
+      T2[j, i] <- which.max(products)
+    }
+  }
+  
+  T1
+}
+  
