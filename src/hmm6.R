@@ -1,4 +1,3 @@
-
 # Get the DNA data
 source('~/Desktop/bgse/projects/github/smo/src/correct_dna.R')
 res <- correct.dna(cut.matrix = FALSE)
@@ -131,7 +130,7 @@ run.viterbi <- function(dna, subseq = 5) {
   ################################################################################
 
   ################################################################################
-  # Run it MOTHERFUCKER
+  # Run it
   total <- c()
   for (i in 1:nrow(dna)) {
     j <- (60 / subseq) * (i - 1) + 1
@@ -161,6 +160,9 @@ run.viterbi <- function(dna, subseq = 5) {
   return(list(tt, sr, er, ir, nr))
 }
 
+################################################################################
+# FULL MODEL
+################################################################################
 full <- run.viterbi(dna, 5)
 full <- run.viterbi(dna, 3)
 full <- run.viterbi(dna, 4)
@@ -177,27 +179,77 @@ nr <- full[[5]]
   cat('* Neither success rate: ', 100 * round(nr, 3), '%\n', sep = '')
 }
 
+################################################################################
+# CROSS-VALIDATION
+################################################################################
+set.seed(666)
+dna2 <- dna
+dna <- dna[sample(1:nrow(dna), nrow(dna)), ]
+k <- 100
+subseq <- 3
 
-k <- 10
-# Create the chunks
-chunks <- split(1:nrow(dna), factor(sort(rank(1:nrow(dna)) %% k)))
+################################################################################
+#(score <- cross.validate(dna, k = 100, subseq = 3)
+cross.validate <- function(dna, k, subseq) {
+################################################################################
+  # Create the chunks
+  chunks <- split(1:nrow(dna), factor(sort(rank(1:nrow(dna)) %% k)))
 
   # Calculate mean squared errors
   rss <- rep(NA, k)
-  for (i in 1:k) {
+  for (v in 1:k) {
     # Choose which rows go where
-    kept <- sort(as.numeric(as.character(unlist(chunks[setdiff(1:k, i)]))))
-    rest <- sort(as.numeric(as.character(unlist(chunks[i]))))
+    kept <- sort(as.numeric(as.character(unlist(chunks[setdiff(1:k, v)]))))
+    rest <- sort(as.numeric(as.character(unlist(chunks[v]))))
 
     # Penalized regression results
-    betas <- pen.reg(y[kept], X[kept, ], lambda)
+    model <- get.hmm(dna = dna[kept, ], subseq = subseq)
+    hmm <- model[[1]]
+
+    # Sequence of aminoacids
+    nucleotids <- unlist(strsplit(paste(dna[rest, 'V3'], collapse = ''), ''))
+    amino <- sapply(seq(1, length(nucleotids), subseq), function(i) {
+      paste(nucleotids[i:(i + subseq - 1)], collapse = '')
+    })
+
+    # Perform k-fold cross-validation
+    total <- c()
+    for (i in 1:nrow(dna[rest, ])) {
+      j <- (60 / subseq) * (i - 1) + 1
+      obs2 <- amino[j:(j + 60 / subseq - 1)]
+      #trial <- HMM::viterbi(hmm, obs2)
+      post1 <- try(rowMeans(HMM::posterior(hmm, obs2)))
+      post2 <- try(rowMeans(HMM::posterior(hmm, rev(obs2))))
+
+      # Some sequences may have not been observed
+      if (class(post1) != 'try-error') {
+        lab1 <- names(which.max(post1))
+        lab2 <- names(which.max(post2))
+
+        # If predictions coincide go for it, otherwise highest posterior
+        if (lab1 == lab2) {
+          result <- lab1
+        } else {
+          result <- ifelse(which.max(c(max(post1), max(post2))) == 1, lab1, lab2)
+        }
+
+        # Accumulate results
+        total <- c(total, result)
+      } else {
+        # If it cannot predict go for the highest prior
+        total <- c(total, 'N')
+      }
+    }
 
     # Mean squared errors
-    rss[i] <- sum((y[rest] - X[rest, ] %*% betas) ** 2)
+    tt <- table(total, dna[rest, 1])
+    rss[v] <- sum(diag(tt)) / sum(tt)
   }
 
-  # End
-  return(mean(rss))
+  # Result
+  mean(rss)
+}
+
 
 
 
