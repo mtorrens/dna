@@ -10,19 +10,19 @@ output:
     highlight: tango
 ---
 
-## Motivation
+## Basics
 
 Text.
 
-## The Problem
+## Challenge
+
+Text.
+
+## Data
 
 Text.
 
 ## Methodology
-
-Text.
-
-## Viterbi algorithm
 
 Text.
 
@@ -32,3 +32,4 @@ Text.
 
 ## Conclusions
 
+Text.
