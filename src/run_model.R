@@ -189,8 +189,7 @@ k <- 100
 subseq <- 3
 
 ################################################################################
-#(score <- cross.validate(dna, k = 100, subseq = 3)
-cross.validate <- function(dna, k, subseq) {
+cross.validate <- function(dna, k, subseq, average = FALSE) {
 ################################################################################
   # Create the chunks
   chunks <- split(1:nrow(dna), factor(sort(rank(1:nrow(dna)) %% k)))
@@ -218,8 +217,8 @@ cross.validate <- function(dna, k, subseq) {
       j <- (60 / subseq) * (i - 1) + 1
       obs2 <- amino[j:(j + 60 / subseq - 1)]
       #trial <- HMM::viterbi(hmm, obs2)
-      post1 <- try(rowMeans(HMM::posterior(hmm, obs2)))
-      post2 <- try(rowMeans(HMM::posterior(hmm, rev(obs2))))
+      post1 <- try(rowMeans(HMM::posterior(hmm, obs2)), silent = TRUE)
+      post2 <- try(rowMeans(HMM::posterior(hmm, rev(obs2))), silent = TRUE)
 
       # Some sequences may have not been observed
       if (class(post1) != 'try-error') {
@@ -247,9 +246,40 @@ cross.validate <- function(dna, k, subseq) {
   }
 
   # Result
-  mean(rss)
+  if (average == FALSE) {
+    return(rss)
+  } else {
+    return(mean(rss))
+  }
 }
 
+################################################################################
+# Cross-validation scores
+library(parallel)
+library(doMC)
+registerDoMC(cores = 4)
+ks <- c(5, 10, 100, nrow(dna))
+ss <- c(3, 5, 6)
+for (k in ks) {
+  aux <- foreach(s = ss) %dopar% {
+    score <- cross.validate(dna, k = k, subseq = s, average = TRUE)
+    cat('k =', k, ', subseq =', s, ', score =',
+        100 * round(score, 3), '%\n', sep = '')
+  }
+}
+
+# score <- cross.validate(dna, k = 10, subseq = 3); mean(score)
+# score <- cross.validate(dna, k = 10, subseq = 5); mean(score)
+# score <- cross.validate(dna, k = 10, subseq = 6); mean(score)
+# score <- cross.validate(dna, k =  5, subseq = 3); mean(score)
+# score <- cross.validate(dna, k =  5, subseq = 5); mean(score)
+# score <- cross.validate(dna, k =  5, subseq = 6); mean(score)
+# score <- cross.validate(dna, k = 100, subseq = 3); mean(score)
+# score <- cross.validate(dna, k = 100, subseq = 5); mean(score)
+# score <- cross.validate(dna, k = 100, subseq = 6); mean(score)
+# score <- cross.validate(dna, k = nrow(dna), subseq = 3); mean(score)
+# score <- cross.validate(dna, k = nrow(dna), subseq = 5); mean(score)
+# score <- cross.validate(dna, k = nrow(dna), subseq = 6); mean(score)
 
 
 
