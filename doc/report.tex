@@ -57,10 +57,10 @@
 %\renewcommand{\abstractname}{Summary} % Uncomment to change the name of the abstract to something else
 
 \begin{abstract}
-Machine learning is becoming increasingly important in genomics. One important application is the use of predictive algorithms to determine which parts of the DNA are used in the creation of certain proteins. Using DNA sequences from the "Molecular Biology (Splice-junction Gene Sequences) Dataset" from the UCI Machine Learning repository, we apply a Viterbi algorithm for Hidden Markov Models to predict which sequences are relevant in the process of synthesizing proteins. The algorithm obtains an accuracy of 82\%.
+Pure data-driven algorithms are becoming increasingly important in genomics. One important application of their use is that of determine which parts of the DNA are used in the creation of certain proteins, which is a task that cannot always be determined in the DNA decoding process. In this project, we use DNA sequences and apply the Viterbi algorithm with hidden Markov models to predict which sequences are relevant in the process of synthesizing proteins. The algorithm developed is able to correctly label about three fourths of the newly observed DNA sequences on whether they are useful in the protein creation process.
 \end{abstract}
 
-\hspace*{3,6mm}\textit{Keywords:} genomics, dynamic programming, hidden Markov models, Viterbi algorithm % Keywords
+\hspace*{3,6mm}\textit{Keywords:} genomics, dynamic programming, hidden Markov, Viterbi algorithm % Keywords
 
 \vspace{30pt} % Some vertical space between the abstract and first section
 
@@ -89,7 +89,7 @@ The reading process is performed by an RNA messenger, which a molecule almost id
 
 Given the extraordinary length of the DNA sequence in complex organisms\footnote{A human chromosome can have up to 500 million base pairs of DNA with thousands of genes.}, detecting what parts of it are actually used and with what purpose is not a trivial task to perform. Modern genomics delve into finding relations between subsequences of the RNA and the posterior protein created. This is the well-known gene finding problem. To tackle this task, one of the most important objectives is to locate where these subsequences start and end, as most of the DNA sequence does not have a known biological use.
 
-Our goal is to identify those regions of the DNA that are used in the synthesis of proteins. In other words, we are looking for patterns that signal the beginning or the end of such regions. The detection of relevants regions in the DNA is an active field of research, as it helps understand, for instance, the origin of certain genetic diseases, as in \cite{scheper}, or \cite{calon}, among many other examples.
+Our goal is to identify those regions of the DNA that are used in the synthesis of proteins. In other words, we are looking for patterns that signal the beginning or the end of such regions. The detection of relevant regions in the DNA is an active field of research, as it helps understand, for instance, the origin of certain genetic diseases, as in \cite{scheper} or \cite{calon}, among many other examples.
 
 The combination of a Hidden Markov Model (HMM) and the well-known dynamic programming Viterbi algorithm have been commonly used in the last two decades to help in that task (see for example \cite{henderson}).
 
@@ -100,11 +100,11 @@ Hidden Markov models and dynamic programming have been used in the past for the 
 
 To carry out this task, we make use of the Molecular Biology Splice-junction Gene Sequences Dataset\footnote{Available publicly at: \texttt{http://bit.ly/25yuniW} \cite{lichman}.}, from the UCI Machine Learning repository, and then apply our particular implementation of a HMM and an adapted Viterbi algorithm to find these regions in this dataset.
 
-The dataset consists of 3,190 short sequences of DNA, each of which contains a string of 60 base nucleotids, such as:
+The dataset consists of 3,190 short sequences of DNA extracted from mammals, each of which contains a string of 60 base nucleotides. We illustrate an example of such 60-character sequences:
 \begin{eqnarray}
 \texttt{CCAGCTGCATCACAGGAGGCCAGCGAGCAGGTCTGTTCCAAGGGCCTTCGAGCCAGTCTG}  \nonumber
 \end{eqnarray}
-Each of these sequences is labelled as an exon region (\texttt{EI}), intron region (\texttt{IE}) or neither (\texttt{N}). The sample is unbalanced towards regions labeled as \texttt{N}, with approximately half of the observations. Exon and intron regions represent roughly 25\% of the sample each. From now on, for consistency with the terminology of our model, we are going to refer to the labels as states and to the nucleotids as symbols. A sequence of five symbols will be called an observation, also known in some contexts as poly-codon. We have chosen to define the observations as combinations of symbols to account for the fact that nucleotides do not translate directly into proteins. As mentioned earlier, they have to be translated into amino acids first, which are composed by strings of three nucleotides. However, we have chosen to include even more nucleotides in our unit measure of observation. We have done it so as to maximize the accuracy of the model, as more complex observations can be expected to better capture the particular patterns found in an exon or intron.
+Each of these sequences is labelled as an exon region (\texttt{EI}), intron region (\texttt{IE}) or neither (\texttt{N}). The sample is unbalanced towards regions labeled as \texttt{N}, with approximately half of the observations. Exon and intron regions represent roughly 25\% of the sample each. From now on, for consistency with the terminology of our model, we are going to refer to the labels as states and to the nucleotides as symbols. A sequence of five symbols will be called an observation, also known in some contexts as poly-codon. We have chosen to define the observations as combinations of symbols to account for the fact that nucleotides do not translate directly into proteins. As mentioned earlier, they have to be translated into amino acids first, which are composed by strings of three nucleotides. However, we have chosen to include even more nucleotides in our unit measure of observation. We have done it so as to maximize the accuracy of the model, as more complex observations can be expected to better capture the particular patterns found in an exon or intron.
 
 Thus, we have:
 \begin{itemize}
@@ -113,7 +113,7 @@ Thus, we have:
 \item States: \texttt{EI}, \texttt{IE}, \texttt{N}.
 \end{itemize}
 
-Our model has to infer the state of each sequence from its string of 60 symbols. To do so, we first set up an HMM using the a priori probabilities infered from the dataset with the following parameters:
+Our model has to infer the state of each sequence from its string of 60 symbols. To do so, we first set up an HMM using the a priori and conditional probabilities inferred from the dataset with the following parameters:
 \begin{itemize}
 \item  $\mathbb{P}(x_0) \equiv \mathbb{P}(x_0 = x_{k})$, where $x_{k} \in \{\texttt{EI}, \texttt{IE}, \texttt{N} \}$, is a vector of initial probabilities for each of the states. The sub-index $k$ refers to element $k$ on the list of possible states.
 \item $\mathbb{P}(x_i | x_{i-1}) \equiv \mathbb{P}(x_i = x_k | x_{i-1})$, where $x_{i}, x_{k} \in \{\texttt{EI}, \texttt{IE}, \texttt{N} \}$, which are the transition probabilities of changing from state $i-1$ to state $i$. Sub-index $i$ refers to the position in the string.
@@ -132,7 +132,7 @@ Applying recursively the law of total probability we get:
 \begin{eqnarray}
 \mathbb{P}(\textbf{x}, \textbf{z}) &=& \mathbb{P}(x_{0}) \prod^{N}_{i=1} \mathbb{P}(z_i | x_i, x_{i-1}) \mathbb{P}(x_i | x_{i-1}).   \nonumber
 \end{eqnarray}
-Using a logarithmic transformation we can express our problem as:
+Using a logarithmic transformation, we can express our problem as:
 \begin{eqnarray}
 \min_{x_0, x_1, \dots, x_N} \left[ -\log \mathbb{P}(x_{0}) - \sum^{N}_{k=1} \left( \log \mathbb{P}(z_i | x_i, x_{i-1}) + \log \mathbb{P}(x_i | x_{i-1}) \right) \right],  \nonumber
 \end{eqnarray}
@@ -157,18 +157,20 @@ for $i \in \{ 1, \dots, N \}$. This is known as the Viterbi algorithm.
 
 On top of the regular Viterbi algorithm described above we had to implement an extra step due to the fixed length of our sequences. Unlike the classical Viterbi algorithm, that returns a sequence of states or transitions from an observed sequence of symbols, we had to group the sequence of predicted states into a single prediction every 60 symbols. This is due to the nature of the dataset. 
 
-We have sequences of DNA of 60 nucleotids, which translate into 12 observations, and each of the sequences has a common state. All of the 12 observations in a sequence are labelled as either \texttt{EI}, \texttt{IE} or \texttt{N} in our dataset. Consequently, the path of states predicted by the Viterbi algorithm must be mapped into a sequence 12 times shorter. To do that, we have evaluated the posterior probabilities for every state at each iteration an taken the state with the highest average posterior probabilily in a given sequence of 12 observations. 
+We have sequences of DNA of 60 nucleotides, which translate into 12 observations, and each of the sequences has a common state. All of the 12 observations in a sequence are labelled as either \texttt{EI}, \texttt{IE} or \texttt{N} in our dataset. Consequently, the path of states predicted by the Viterbi algorithm must be mapped into a sequence 12 times shorter. To do that, we have evaluated the posterior probabilities for every state at each iteration an taken the state with the highest average posterior probability in a given sequence of 12 observations. 
 
 We have coded\footnote{The full code can be found in: \texttt{https://github.com/mtorrens/dna}.} the described Viterbi algorithm in \texttt{R}. 
 
 %------------------------------------------------
 \section*{Results}
 
-In order to improve the results a bit, the Viterbi algorithm is run both forward and backwards. If both directions coincide in classification, then the label is clear. If they differ, the one with highest posterior porobability is applied.
+In order to improve the results a bit, the Viterbi algorithm is run both forward and backwards. If both directions coincide in classification, then the label is clear. If they differ, the one with highest posterior probability is applied.
 
 Three different amounts of subsequences have been attempted: 3 letters (codon level), 5 (poly-codon) and 6 (di-codon). We kept five letters as it maximised the cross-validation scores at all levels. To validate the model, $k$-fold cross-validation is performed, as well as leave-one-out error. Using the entire set for training, we achieved in-sample success rate of 82.4\%, that is broken down with 83.8\% correct labels in the exon regions, 78.4\% in the intron regions and 83.5\% in the regions that are neither.
 
 Cross-validation scores are a bit weaker but still remarkable. Five-fold cross-validation obtains 71.2\% success rate, ten-fold obtains 71.0\%, hundred-fold gets to 72.5\%. Leave-one-out cross-validation, the most unbiased estimator, hits 73.0\% of the labels correctly. The model is able to score with almost the same accuracy intron-exon, exon-intron and neither regions.
+
+There is a reason reason behind the difference between the cross-validation scores. When the algorithm finds in the test stage a sequence that it had not observed in the training set, it is not able to compute the posterior probability. In such case, our model assigns the highest prior probability. Given that the number of combinations in five characters is reasonably finite, as we increase the training set, the number of unobserved subsequences tends to zero rapidly, which allows the leave-one-out error estimate to outstand. Its algorithm is trained with the largest amount of distinct combinations and, thus, is able to compute posterior probabilities for virtually all sequences.
 
 %------------------------------------------------
 
@@ -176,7 +178,9 @@ Cross-validation scores are a bit weaker but still remarkable. Five-fold cross-v
 %------------------------------------------------
 \section*{Conclusions}
 
-Modern sequencing has introduced new methodologies, empowered by the increasing computational power when processing large chunks of DNA data. Neural networks have achieved identification success rates well above 90\%
+Modern sequencing has introduced new methodologies, empowered by the increasing computational power when processing large chunks of DNA data. Neural networks have achieved identification success rates well above 90\%. Nonetheless, this example has proven that this approach is simple, comprehensible, powerful and not too computationally intensive. It is an algorithm that is not as data-hungry as its neural networks counterpart. This combination of hidden Markov models and the Viterbi algorithm was a state-of-the-art innovative technique that achieves an outstanding success rate.
+
+Additionally, some characteristics of particular sub-problems tied to the decoding of the DNA still make the HMM and Viterbi approach a top-class research technique, as recent articles use this method with different objectives, see for example \cite{schreiber} or \cite{sacher}. Hopefully, the increasing amount of processed and sequenced information will allow this methodology to be powerful and widely used in an increasing amount of advanced genomics research.
 
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY
