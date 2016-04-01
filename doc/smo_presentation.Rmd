@@ -12,21 +12,29 @@ output:
 
 ## Basics
 
-Text.
+* DNA contains nucleotides: \texttt{A}, \texttt{C}, \texttt{G}, \texttt{T}
+
+* DNA transcription:
+
+DNA -> pre-mRNA -> mRNA -> proteins
+
+* Not all DNA is "expressed"
 
 ## Challenge
 
-Text.
+* Exons vs. Introns
+
+* Identify transitions between exons and introns.
 
 ## Data
 
 * Dataset from the UCI Repository: "Molecular Biology".
 
-* 3190 sequences of 60 letters ("AATGCCGTAT...").
+* 3190 sequences of 60 letters (\texttt{AATGCCGTAT...}).
 
-* Each sequence is labelled as ("EI", "IE", "N").
+* Each sequence is labelled as (\texttt{EI}, \texttt{IE}, \texttt{N}).
 
-* We break down each sequence into strings of 5 letters ("AAAA", "ACGTT"...)
+* We break down each sequence into strings of 5 letters (\texttt{AAAA}, \texttt{ACGTT}...)
 
 
 ## Methodology
@@ -45,8 +53,25 @@ grid.raster(img)
 
 ## Results
 
-Text.
+* Run Viterbi forward and backward and ensemble
+* We chose 5-letter subsequence as it maximizes posterior success
+* Run $k$-fold cross-validation but we stay with leave-one-out
+
+Outcome:
+
+* 82.5% in-sample success rate
+* 74.1% out-of-sample success rate
+    + Intron-exon transition: 69.5%
+    + Exon-intron transition: 73.6%
+    + Neither: 75.3%
 
 ## Conclusions
 
-Text.
+1. This algorithm can reduce exponentially the regions where scientists have to look within the DNA, predicting how useful new decoded DNA sequences can be.
+
+2. It is a key process in gene finding, disease research and drug discovery
+
+3. Algorithm easy to train, fairly reliable, not data-hungry and comprehensible to non-data-scientists
+
+4. Current state-of-the-art techniques include neural networks and deep learning, which are more successful, but in some contexts HMM + Viterbi are still top-class!
+
