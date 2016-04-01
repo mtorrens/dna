@@ -1,0 +1,35 @@
+---
+title: "Locating protein-creating genes by parsing DNA sequences with the Viterbi algorithm"
+author: "Roger Cuscó, Matthew Sudmann-Day and Miquel Torrens"
+date: "April 1, 2016"
+output:
+  beamer_presentation:
+    toc: false
+    incremental: false
+    slide_level: 2
+    highlight: tango
+---
+
+## Basics
+
+Text.
+
+## Challenge
+
+Text.
+
+## Data
+
+Text.
+
+## Methodology
+
+Text.
+
+## Results
+
+Text.
+
+## Conclusions
+
+Text.
