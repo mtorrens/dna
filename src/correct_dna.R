@@ -1,7 +1,19 @@
-#source('~/Desktop/bgse/projects/smo/correct_dna.R')
+
+################################################################################
+# LOAD THE DNA DATA AND CONCATENATE SEQUENCES
+#
+# function: correct.dna()
+#
+# parameter: cut.matrix (default=FALSE), a Boolean which indicates whether or
+#   not to return a reduced quantity of DNA data
+#
+# return value: a list containing three elements
+#    dna: a data frame containing the source data
+#    sequence: a string containing the full concatenation of all 60-nucleotide
+#      seqeunces
+#   nucleotids: a vector containing individual characters of all nucleotides
 ################################################################################
 correct.dna <- function(cut.matrix = FALSE) {
-################################################################################
   txt1 <- 'https://archive.ics.uci.edu/ml/machine-learning-databases/'
   txt2 <- 'molecular-biology/splice-junction-gene-sequences/splice.data'
   rfile <- paste(txt1, txt2, sep = '')
@@ -23,7 +35,7 @@ correct.dna <- function(cut.matrix = FALSE) {
   sequence <- paste(dna[, 'V3'], collapse = '')
   nucleotids <- unlist(strsplit(sequence, ''))
 
-  # Which positions are each letter
+  # Which positions are each letter
   as <- gregexpr('A', sequence)[[1]] + 1
   ts <- gregexpr('T', sequence)[[1]] + 1
   cs <- gregexpr('C', sequence)[[1]] + 1
@@ -52,6 +64,7 @@ correct.dna <- function(cut.matrix = FALSE) {
   nucleotids[which(nucleotids == 'S')] <- sample(c('C', 'G'), 1)
   nucleotids[which(nucleotids == 'R')] <- sample(c('A', 'G'), 1)
   nucleotids[which(nucleotids == 'D')] <- sample(c('A', 'C', 'G'), 2)
+  
   repeat {
     to.correct <- which(nucleotids == 'N') - 1
 
@@ -84,7 +97,3 @@ correct.dna <- function(cut.matrix = FALSE) {
                         sequence = csequence,
                         nucleotids = nucleotids)))
 }
-
-# # Call the function
-# res <- correct.dna()
-# END OF SCRIPT

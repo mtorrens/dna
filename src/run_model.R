@@ -1,14 +1,20 @@
-# Get the DNA data
-source('correct_dna.R')
-res <- correct.dna(cut.matrix = FALSE)
-
-# Data obtained
-dna <- res[['dna']]
-nucleotids <- res[['nucleotids']]
-
+################################################################################
+# GENERATE THE TRAINED HIDDEN MARKOV MODEL
+#
+# function: get.hmm()
+#
+# parameter: dna, a data frame containing the source data, each row of which
+#            contains a 60-nucleotide sequence and its correct state (EI/IE/N)
+#
+# return value: the HMM model which is a list containing
+#   States: a vector with the names of the states
+#   Symbols: a vector with the names of the symbols
+#   startProbs: a vector with the starting probabilities of the states
+#   transProbs: a matrix containing the transition probabilities between the states
+#   emissionProbs: a matrix containing the emission probabilities of the states
 ################################################################################
 get.hmm <- function(dna, subseq) {
-################################################################################
+  
   # Nucleotides
   nucleotids <- unlist(strsplit(paste(dna[, 'V3'], collapse = ''), ''))
 
@@ -72,7 +78,7 @@ get.hmm <- function(dna, subseq) {
   trN <- table(ext.labs[which(ext.labs == 'N') + 1]) /
          sum(table(ext.labs[which(ext.labs == 'N') + 1]))
 
-  # Fill the matrix
+  # Fill the matrix
   res <- matrix(nrow = 3, ncol = 3)
   colnames(res) <- c('E', 'I', 'N')
   rownames(res) <- c('E', 'I', 'N')
@@ -97,7 +103,7 @@ get.hmm <- function(dna, subseq) {
   amino2[, 2] <- substr(amino2[, 2], 1, 1)
   camino <- paste(amino2[, 2], amino2[, 1], sep = '')
 
-  # Fill the matrix
+  # Fill the matrix
   res <- matrix(nrow = 3, ncol = length(unique(amino)))
   uamino <- unique(amino)
   for (i in 1:length(unique(amino))) {
@@ -120,17 +126,31 @@ get.hmm <- function(dna, subseq) {
 }
 
 ################################################################################
-run.viterbi <- function(dna, subseq = 5) {
+# RUN THE VITERBI ALGORITHM TO CLASSIFY A SET OF DNA SEQUENCES
+#
+# function: classify()
+#
+# parameters:
+#   dna, a data frame containing the source data, each row of which
+#     contains a 60-nucleotide sequence and its correct state (EI/IE/N)
+#   subseq (default=5): the number of nucleotides in a subsequence that we
+#     consider to be the "symbol" emitted from the model
+#
+# return value: the HMM model which is a list containing
+#   States: a vector with the names of the states
+#   Symbols: a vector with the names of the symbols
+#   startProbs: a vector with the starting probabilities of the states
+#   transProbs: a matrix containing the transition probabilities between the states
+#   emissionProbs: a matrix containing the emission probabilities of the states
 ################################################################################
-  ##############################################################################
+classify <- function(dna, subseq = 5) {
+
   # HMM matrix
   model <- get.hmm(dna, subseq)
   hmm <- model[[1]]
   amino <- model[[2]]
-  ################################################################################
 
-  ################################################################################
-  # Run it
+    # Run it
   total <- c()
   for (i in 1:nrow(dna)) {
     j <- (60 / subseq) * (i - 1) + 1
@@ -161,32 +181,25 @@ run.viterbi <- function(dna, subseq = 5) {
 }
 
 ################################################################################
-# FULL MODEL
+# CROSS VALIDATE TO DETERMINE ACCURACY
+#
+# function: cross.validate()
+#
+# parameters:
+#   dna: a data frame containing the source data, each row of which
+#     contains a 60-nucleotide sequence and its correct state (EI/IE/N)
+#   k: the number of folds in our k-fold cross-validation
+#   subseq: the number of nucleotides in a subsequence that we consider to be
+#     the "symbol" emitted from the model
+#   average: (default=FALSE)
+#
+# return value: the HMM model which is a list containing
+#   States: a vector with the names of the states
+#   Symbols: a vector with the names of the symbols
+#   startProbs: a vector with the starting probabilities of the states
+#   transProbs: a matrix containing the transition probabilities between the states
+#   emissionProbs: a matrix containing the emission probabilities of the states
 ################################################################################
-full <- run.viterbi(dna, 5)
-full <- run.viterbi(dna, 3)
-full <- run.viterbi(dna, 4)
-full <- run.viterbi(dna, 6)
-sr <- full[[2]]
-er <- full[[3]]
-ir <- full[[4]]
-nr <- full[[5]]
-
-{
-  cat('* Success rate: ', 100 * round(sr, 3), '%\n', sep = '')
-  cat('* Exon success rate: ', 100 * round(er, 3), '%\n', sep = '')
-  cat('* Intron success rate: ', 100 * round(ir, 3), '%\n', sep = '')
-  cat('* Neither success rate: ', 100 * round(nr, 3), '%\n', sep = '')
-}
-
-################################################################################
-# CROSS-VALIDATION
-################################################################################
-set.seed(666)
-dna2 <- dna
-dna <- dna[sample(1:nrow(dna), nrow(dna)), ]
-k <- 100
-subseq <- 3
 
 ################################################################################
 cross.validate <- function(dna, k, subseq, average = FALSE, usePackage = FALSE) {
@@ -288,7 +301,7 @@ cross.validate <- function(dna, k, subseq, average = FALSE, usePackage = FALSE) 
 # score <- cross.validate(dna, k = 10, subseq = 3); mean(score)
 # score <- cross.validate(dna, k = 10, subseq = 5); mean(score)
 # score <- cross.validate(dna, k = 10, subseq = 6); mean(score)
-# score <- cross.validate(dna, k =  5, subseq = 3); mean(score)
+ score <- cross.validate(dna, k =  5, subseq = 3, TRUE); mean(score)
 score <- cross.validate(dna, k =  5, subseq = 5, TRUE); mean(score)
 score <- cross.validate(dna, k =  5, subseq = 5, FALSE); mean(score)
 # score <- cross.validate(dna, k =  5, subseq = 6); mean(score)
@@ -301,41 +314,107 @@ score <- cross.validate(dna, k =  5, subseq = 5, FALSE); mean(score)
 
 ################################################################################
 # THE VITERBI IMPLEMENTATION
+#
+# function: my.viterbi()
+#
+# parameter: model, a list containing
+#   States: a vector with the names of the states
+#   Symbols: a vector with the names of the symbols
+#   startProbs: a vector with the starting probabilities of the states
+#   transProbs: a matrix containing the transition probabilities between the states
+#   emissionProbs: a matrix containing the emission probabilities of the states
+#
+# return value: a matrix containing the probabilities of each of the states
+#   for each observation
 ################################################################################
 my.viterbi <- function(model, obs)
 {
-  O <- model$Symbols
-  S <- model$States
-  Y <- obs
-  A <- model$transProbs
-  B <- model$emissionProbs
-  pi <- model$startProbs
-  
-  T1 <- matrix(0, length(S), length(Y))
-  T2 <- matrix(0, length(S), length(Y))
-  
-  for (j in 1:length(S))
+  # Create a matrix of probabilities that we will return.
+  prob <- matrix(0, length(model$States), length(obs))
+
+  # Loop through each of the model states.
+  # In this loop, we only process the initial observation
+  for (j in 1:length(model$States))
   {
-    y <- which(O == Y[1])
+    # Find the index of the symbol from the observation.
+    y <- which(model$Symbols == obs[1])
+    # If we don't find it, it's because we have encountered a symbol that the model
+    # was not trained on.  In that case, we cannot proceed and return NULL.
     if (length(y) == 0) { return(NULL) }
    
-    T1[j, 1] <- pi[j] * B[j, y]
-    T2[j, 1] <- 0
+    # Record the probability of each state for the first observation.  This is the
+    # product of the prior stating probability of the state and the prior emission
+    # probability of the symbol.
+    prob[j, 1] <- model$startProbs[j] * model$emissionProbs[j, y]
   }
   
+  # Loop through all subsequent observations.
   for (i in 2:length(obs))
   {
-    y <- which(O == Y[i])
+    # Find the index of the symbol from the current observation.
+    y <- which(model$Symbols == obs[i])
+    # As above, if we don't find it, return NULL.
     if (length(y) == 0) { return(NULL) }
-   
-    for (j in 1:length(S))
+
+    # For each model state
+    for (j in 1:length(model$States))
     {
-      products <- T1[, i-1] * A[, j] * B[j, y]
-      T1[j, i] <- max(products)
-      T2[j, i] <- which.max(products)
+      # Calculate the product of (1) the probability of each state in the previous
+      # iteration/observatoin, (2) the probability of transitioning from that previous
+      # state to that of the current observation, and (3) the emission probability
+      # of the symbol encountered in the current iteration/observation.
+      
+      products <- prob[, i-1] * model$transProbs[, j] * model$emissionProbs[j, y]
+      # Record the probability of each state for the first observation.  This is the
+      # product of the prior stating probability of the state and the prior emission
+      # probability of the symbol.
+      prob[j, i] <- max(products)
     }
   }
   
-  T1
+  # Return the probabilities calculated for each state at each observation.
+  # Typically, the caller will only be interested in the maximum value in the final
+  # column as that is the most probable final state.
+  return(prob)
 }
-  
+
+
+################################################################################
+# CROSS-VALIDATION
+################################################################################
+set.seed(666)
+dna2 <- dna
+dna <- dna[sample(1:nrow(dna), nrow(dna)), ]
+k <- 100
+subseq <- 3
+
+
+################################################################################
+# FULL MODEL
+################################################################################
+full <- run.viterbi(dna, 5)
+full <- run.viterbi(dna, 3)
+full <- run.viterbi(dna, 4)
+full <- run.viterbi(dna, 6)
+sr <- full[[2]]
+er <- full[[3]]
+ir <- full[[4]]
+nr <- full[[5]]
+
+{
+  cat('* Success rate: ', 100 * round(sr, 3), '%\n', sep = '')
+  cat('* Exon success rate: ', 100 * round(er, 3), '%\n', sep = '')
+  cat('* Intron success rate: ', 100 * round(ir, 3), '%\n', sep = '')
+  cat('* Neither success rate: ', 100 * round(nr, 3), '%\n', sep = '')
+}
+
+# Get the DNA data
+source('correct_dna.R')
+res <- correct.dna(cut.matrix = FALSE)
+head(res$dna)
+length(res$nucleotids)
+nchar(res$sequence)
+# Data obtained
+dna <- res[['dna']]
+nucleotids <- res[['nucleotids']]
+
