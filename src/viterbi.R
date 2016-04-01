@@ -10,8 +10,8 @@
 #   transProbs: a matrix containing the transition probabilities between the states
 #   emissionProbs: a matrix containing the emission probabilities of the states
 #
-# return value: a matrix containing the probabilities of each of the states
-#   for each observation
+# return value: a matrix containing the logs of probabilities of each of the states
+#   for each observation.  These values are only useful relative to one another.
 ################################################################################
 viterbi <- function(model, obs)
 {
@@ -31,7 +31,7 @@ viterbi <- function(model, obs)
     # Record the probability of each state for the first observation.  This is the
     # product of the prior stating probability of the state and the prior emission
     # probability of the symbol.
-    prob[j, 1] <- model$startProbs[j] * model$emissionProbs[j, y]
+    prob[j, 1] <- log(model$startProbs[j]) + log(model$emissionProbs[j, y])
   }
   
   # Loop through all subsequent observations.
@@ -45,20 +45,20 @@ viterbi <- function(model, obs)
     # For each model state
     for (j in 1:length(model$States))
     {
-      # Calculate the product of (1) the probability of each state in the previous
-      # iteration/observatoin, (2) the probability of transitioning from that previous
-      # state to that of the current observation, and (3) the emission probability
-      # of the symbol encountered in the current iteration/observation.
+      # Calculate the sums of logs using (1) the probability of each state in the previous
+      # iteration/observation (already a log), (2) the probability of transitioning from
+      # that previous state to that of the current observation, and (3) the emission
+      # probability of the symbol encountered in the current iteration/observation.
+      sums <- prob[, i-1] + log(model$transProbs[, j]) + log(model$emissionProbs[j, y])
       
-      products <- prob[, i-1] * model$transProbs[, j] * model$emissionProbs[j, y]
       # Record the probability of each state for the first observation.  This is the
-      # product of the prior stating probability of the state and the prior emission
-      # probability of the symbol.
-      prob[j, i] <- max(products)
+      # sum of the logs of the prior stating probability of the state and the log of the
+      # prior emission probability of the symbol.
+      prob[j, i] <- max(sums)
     }
   }
   
-  # Return the probabilities calculated for each state at each observation.
+  # Return the log probabilities calculated for each state at each observation.
   # Typically, the caller will only be interested in the maximum value in the final
   # column as that is the most probable final state.
   return(prob)
