@@ -20,11 +20,28 @@ Text.
 
 ## Data
 
-Text.
+* Dataset from the UCI Repository: "Molecular Biology".
+
+* 3190 sequences of 60 letters ("AATGCCGTAT...").
+
+* Each sequence is labelled as ("EI", "IE", "N").
+
+* We break down each sequence into strings of 5 letters ("AAAA", "ACGTT"...)
+
 
 ## Methodology
 
-Text.
+* We use a Hidden Markov Model to model the sequences.
+
+* We predict the Hidden states using the Viterbi algorithm. Why?
+
+```{r fig.width=3, echo=FALSE, fig.align='center'}
+#```{r fig.width=1, fig.height=10, echo=FALSE}
+library(png)
+library(grid)
+img <- readPNG("trellis.png")
+grid.raster(img)
+```
 
 ## Results
 
