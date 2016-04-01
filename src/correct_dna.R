@@ -13,10 +13,11 @@
 #   nucleotids: a vector containing individual characters of all nucleotides
 ################################################################################
 correct.dna <- function(cut.matrix = FALSE) {
+  
   txt1 <- 'https://archive.ics.uci.edu/ml/machine-learning-databases/'
   txt2 <- 'molecular-biology/splice-junction-gene-sequences/splice.data'
+  
   rfile <- paste(txt1, txt2, sep = '')
-  #sfile <- paste(DATDIR, '')
   dna <- read.table(rfile, sep = ',')
 
   if (cut.matrix == TRUE) {
