@@ -10,39 +10,35 @@ Machine learning is becoming increasingly important in the filed of genomics. On
 
 #### Framework 
 
-DNA is a molecule that contains all the information needed to develop a living organism. Yet, its structure is surprisingly simple. It essentially boils down to a long sequence of building blocks, called nucleotides, structured in the shape of a double helix. This sequence consists of only four types of nucleotides, arranged in patterns that determine which proteins will be synthesized. These four nucleotides are usually denoted by the following four letters: A, G, C and T. DNA sequencing is the process of translating a DNA molecule into a sequence of A, G, C and T's, and our dataset is a collection of such sequences.
+DNA is a molecule that contains all the information needed to develop a living organism. Yet, its structure is surprisingly simple. It essentially boils down to a long sequence of building blocks, called nucleotides, structured in the shape of a double helix. This sequence consists of only four types of nucleotides, arranged in patterns that determine which proteins will be synthesized. These four nucleotides are usually denoted by the following four letters: A, G, C and T. DNA sequencing is the process of translating a DNA molecule into a sequence of A's, G's, C's and T's, and our dataset is a collection of such sequences.
 
-DNA is indirectly used to build proteins in the cells of an organism.  The process involves "reading" the DNA and producing RNA, then reading the RNA and producing proteins.  RNA itself goes through a series of reading and writing phases.  In one of these phases, some portions are not copied, meaning that only subsets of the original DNA ultimately get "expressed" as proteins.  Those expressed portions of DNA are called "exons".  The portions are DNA that are not expressed are intervening sequences, or "intragenic" regions and are therefore called "introns".
+DNA is indirectly used to build proteins in the cells of an organism.  The process involves "reading" the DNA and producing RNA, then reading the RNA and producing proteins.  RNA itself goes through a series of reading and writing phases.  In one of these phases, some portions are not copied, meaning that only subsets of the original DNA ultimately get "expressed" as proteins.  Those expressed portions of DNA are called "exons".  The portions of DNA that are not expressed are the intervening sequences, or "intragenic" regions and are therefore called "introns".
 
-In our dataset, we have sequences of DNA of length 60; that is, containing 60 nucleotides or letters. These sequences contain regions of the whole DNA that may or may not be relevant for protein synthesis. Specifically, a particular sequence may contain the start of a relevant region, in which case it is an intron-to-exon region; it may contain the end of a relevant region, in which case it is exon-to-intron region; or it may be neither, meaning that it is simply the continuation of a previous exon or intron.
+In our dataset, we have sequences of DNA containing 60 nucleotides or letters. These sequences contain regions of the whole DNA that may or may not be relevant for protein synthesis. Specifically, a particular sequence may contain the start of a relevant region, in which case it is an intron-to-exon region.  It may contain the end of a relevant region, in which case it is an exon-to-intron region.  Or it may be neither, meaning that it is simply the continuation of a previous exon or intron.
 
 #### Problem 
 
-Our goal is to help identify those transitions between expressed and intervening sequences. In other words, we are looking for patterns that signal the beginning or the end of exons and introns. The detection of expressed regions in DNA is an active field of research, as it helps us to understand, for instance, the origin of certain genetic diseases (example http://www.nature.com/scitable/content/translation-matters-protein-synthesis-defects-in-inherited-13998175). 
+Our goal is to help identify those transitions between expressed and intervening sequences. In other words, we are looking for patterns that signal the beginning or the end of exons and introns. The detection of expressed regions in DNA is an active field of research, as it helps us to understand, for instance, the origin of certain genetic diseases (for example,  http://www.nature.com/scitable/content/translation-matters-protein-synthesis-defects-in-inherited-13998175). 
 
-In our case, we will be training a Hidden Markov Model (HMM) based on raw sequences of nucleotides, and applying a Viterbi algorithm to infer the probability of a particular sequence containing the start of an exon, an intron, or neither. 
+Our approach is to train a Hidden Markov Model (HMM) based on raw sequences of nucleotides, and then apply a Viterbi algorithm to infer the probability of a particular sequence containing the start of an exon, an intron, or neither. 
 
 #### Methodology
 
-Hidden Markov models (HMM) and dynamic programming have been used in the past for the detection of introns an exons (reference at least to the main paper we use: http://drum.lib.umd.edu/bitstream/handle/1903/8004/FindingGenes.pdf?sequence=1). We use the "Molecular Biology (Splice-junction Gene Sequences) Dataset" from the UCI Machine Learning repository and our particular implementation of HMM and Viterbi adapted to the dataset in hand.
+Hidden Markov models (HMM) and dynamic programming have been used in the past for the detection of introns and exons (reference to the main paper we use: http://drum.lib.umd.edu/bitstream/handle/1903/8004/FindingGenes.pdf?sequence=1). We use the "Molecular Biology (Splice-junction Gene Sequences)" dataset from the UCI Machine Learning repository with our particular implementation of HMM and Viterbi adapted to the dataset in hand.
 
 The dataset consists of 3190 sequences of DNA, each of which contains a string of 60 nucleotides such as
 
-$"CCAGCTGCATCACAGGAGGCCAGCGAGCAGGTCTGTTCCAAGGGCCTTCGAGCCAGTCTG""$
+$CCAGCTGCATCACAGGAGGCCAGCGAGCAGGTCTGTTCCAAGGGCCTTCGAGCCAGTCTG$.
 
-Each of these sequences is labelled as an exon-to-intron ("EI"), intron-to-exon ("IE") or neither ("N"). From now on, for consistency with the terminology of our model, we are going to refer to the labels as states and to the nucleotides as symbols. A sequence of 5 symbols will be called an observation.
-
-the next paragaph has to be adjusted ->
-
-We have chosen to define the observations as combinations of symbols to account for the fact that nucleotides do not translate directly into proteins. As mentioned earlier, they have to be translated into amino acids first, which are composed by strings of three nucleotides. However, we have chosen to include even more nucleotides in our unit measure of observation. We have done it so as to maximize the accuracy of the model, as more complex observations can be expected to better capture the particular patterns found in an exon or intron.
+Each of these sequences is labelled as an exon-to-intron ("EI"), intron-to-exon ("IE") or neither ("N"). From now on, for consistency with the terminology of Hidden Markov Models, we are going to refer to the labels as "states" and shorter sequences of nucleotides as "symbols". We could have chosen to use individual nucleotides as symbols, allowing us 59 transitions per sequence of 60 nucleotides.  The more nucleotides that we include in a symbol, the more opportunity we have to capture the specific patters contained within exons and introns.  However, as we increase the number of nucleotides in a symbol, we decrease the number of transitions we are able to observe, and we exponentially increase the number of possible symbols meaning that our dataset quickly becomes inadequate for training purposes. We found that defining symbols as being subsequences of five nucleotides gave the optimal balance.  This allowed us to operate our model on 12 symbols per sequence of 60 nucleotides.
 
 Thus, we have
 
-  * Symbols: A, C, G, T.
-  * Observations: AAAAA,...., AGTC,....TTTT.
+  * Symbols: AAAAA, ..., ACGTA, ....., TTTTT
+  * Observations: a sequence of 12 symbols
   * States: EI, IE, N.
 
-Our model has to infer the state of each sequence from its string of 60 symbols. 
+Our model must infer the state of each sequence from its string of 60 nucleotides. 
 To do so, we first set up an HMM using the a priori probabilities infered from the dataset with the following parameters:
 
   * $\pi_{x_{k}}$ where $x_{k} \in \{EI, IE, N\}$, which is a vector of initial probabilities for each of the states. 
@@ -71,6 +67,6 @@ $$D_{k+1}(x_{k+1}) \min\limits_{\substack{all \ x_{k} \ such \\ that \ p_{x_{k}x
 In addition to the regular Viterbi algorithm described above, we had to implement an extra step due to the fixed length of our sequences. Unlike the classical Viterbi algorithm which returns a sequence of states or transitions from an observed sequence of symbols, we had to group the sequence of predicted states into a single prediction every 60 symbols. This is due to the nature of the dataset. 
 We have sequences of DNA of 60 nucleotides, which translate into 12 observations, and each of the sequences has a common state. All of the 12 observations in a sequence are labelled as either EI, IE or N in our dataset. Consequently, the path of states predicted by the Viterbi algorithm must be mapped into a sequence 12 times shorter. To do that, we have evaluated the posterior probabilities for every state at each iteration an taken the state with the highest average posterior probabilily in a given sequence of 12 observations. 
 
-We have coded the described Viterbi algorithm in R. 
+We have coded the described Viterbi algorithm in R. The code is available on GitHub at https://github.com/mtorrens/dna .
 
 figure 1 of the appendix: https://upload.wikimedia.org/wikipedia/commons/d/d6/GeneticCode21-version-2.svg
